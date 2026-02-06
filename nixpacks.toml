@@ -1,0 +1,11 @@
+[providers]
+python = "311"
+
+[phases.install]
+cmds = [
+  "pip install -r medical_assistant/requirements.txt"
+]
+
+[start]
+cmd = "cd medical_assistant && gunicorn webhook:app --bind 0.0.0.0:$PORT --timeout 120"
+

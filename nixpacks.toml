@@ -1,9 +1,13 @@
 [providers]
-python = "311"
+python = "3.11"
+
+[phases.setup]
+nixPkgs = ["python311"]
 
 [phases.install]
 cmds = [
-  "pip install -r medical_assistant/requirements.txt"
+  "pip install --upgrade pip",
+  "pip install -r requirements.txt"
 ]
 
 [start]

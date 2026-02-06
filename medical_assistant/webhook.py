@@ -1195,12 +1195,13 @@ def home():
 # ============================================
 
 if __name__ == '__main__':
+    import os
+    
     print("\n" + "="*60)
     print("🚀 MEDICAL AI BOT - DÉMARRAGE")
     print("="*60)
     print(f"\n📱 WhatsApp: +1 555 150 3964")
     print(f"🤖 Modèles IA: GPT-4, Claude, DeepSeek, Qwen, Llama")
-    print(f"🌐 Port: 5000")
     
     # Vérification des variables d'environnement
     print("\n" + "="*60)
@@ -1219,8 +1220,11 @@ if __name__ == '__main__':
         print("⚠️ Le webhook ne pourra pas envoyer de messages WhatsApp.")
         print("⚠️ Vérifiez votre fichier .env\n")
     
-    print("\n💡 Pour tester le serveur, visitez: http://localhost:5000/test")
-    print("💡 Webhook URL: http://VOTRE_IP:5000/webhook")
+    # Obtenir le port depuis les variables d'environnement (pour Heroku, etc.)
+    port = int(os.environ.get('PORT', 5000))
+    print(f"\n🌐 Port: {port}")
+    print("\n💡 Pour tester le serveur, visitez: http://localhost:{}/test".format(port))
+    print("💡 Webhook URL: http://VOTRE_IP:{}/webhook".format(port))
     print("\n" + "="*60 + "\n")
     
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=port, debug=False)

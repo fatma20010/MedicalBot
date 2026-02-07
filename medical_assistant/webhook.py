@@ -33,6 +33,19 @@ print(f"WHATSAPP_TOKEN présent: {bool(os.getenv('WHATSAPP_TOKEN'))}")
 print(f"WHATSAPP_TOKEN longueur: {len(os.getenv('WHATSAPP_TOKEN', ''))}")
 print(f"PHONE_NUMBER_ID présent: {bool(os.getenv('PHONE_NUMBER_ID'))}")
 print(f"Toutes les variables WHATSAPP: {[k for k in os.environ.keys() if 'WHATSAPP' in k or 'PHONE' in k]}")
+print(f"\n📋 TOUTES LES VARIABLES D'ENVIRONNEMENT DISPONIBLES:")
+print(f"Total: {len(os.environ)} variables")
+# Afficher toutes les variables (masquées pour sécurité)
+for key in sorted(os.environ.keys()):
+    value = os.environ[key]
+    if len(value) > 50:
+        display_value = value[:20] + "..." + value[-10:] + f" (longueur: {len(value)})"
+    else:
+        display_value = value
+    # Masquer les valeurs sensibles
+    if 'TOKEN' in key or 'KEY' in key or 'SECRET' in key or 'PASSWORD' in key:
+        display_value = "*" * min(20, len(value))
+    print(f"  {key} = {display_value}")
 print("="*60 + "\n")
 sys.stdout.flush()
 
@@ -75,10 +88,18 @@ if not WHATSAPP_TOKEN:
     print("❌ ERREUR CRITIQUE: WHATSAPP_TOKEN n'est pas défini!")
     print("="*60)
     print("Vérifiez que la variable WHATSAPP_TOKEN est définie dans Railway")
-    print("Variables d'environnement disponibles:")
-    for key in sorted(os.environ.keys()):
-        if 'TOKEN' in key or 'PHONE' in key or 'WHATSAPP' in key:
-            print(f"  - {key}: {'*' * min(20, len(os.getenv(key, '')))}")
+    print("\n🔍 DIAGNOSTIC:")
+    print(f"  - Variables d'environnement totales: {len(os.environ)}")
+    print(f"  - Variables contenant 'TOKEN': {[k for k in os.environ.keys() if 'TOKEN' in k]}")
+    print(f"  - Variables contenant 'WHATSAPP': {[k for k in os.environ.keys() if 'WHATSAPP' in k]}")
+    print(f"  - Variables contenant 'PHONE': {[k for k in os.environ.keys() if 'PHONE' in k]}")
+    print("\n💡 SOLUTION:")
+    print("  1. Allez dans Railway → Votre Service → Variables")
+    print("  2. Cliquez sur '+ New Variable'")
+    print("  3. Nom: WHATSAPP_TOKEN")
+    print("  4. Valeur: Votre token WhatsApp")
+    print("  5. Assurez-vous que c'est une 'Service Variable' (pas seulement 'Shared Variable')")
+    print("  6. Redémarrez le service après ajout")
     print("="*60 + "\n")
     sys.stdout.flush()
 else:

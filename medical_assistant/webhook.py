@@ -17,9 +17,24 @@ import base64
 from io import BytesIO
 
 # Charger les variables d'environnement
+# En production (Railway), les variables sont déjà dans l'environnement système
+# load_dotenv() est utile pour le développement local avec un fichier .env
 load_dotenv()
 
 app = Flask(__name__)
+
+# Log des variables d'environnement au démarrage (pour debug)
+import sys
+sys.stdout.flush()
+print("\n" + "="*60)
+print("🔍 VÉRIFICATION DES VARIABLES D'ENVIRONNEMENT AU DÉMARRAGE")
+print("="*60)
+print(f"WHATSAPP_TOKEN présent: {bool(os.getenv('WHATSAPP_TOKEN'))}")
+print(f"WHATSAPP_TOKEN longueur: {len(os.getenv('WHATSAPP_TOKEN', ''))}")
+print(f"PHONE_NUMBER_ID présent: {bool(os.getenv('PHONE_NUMBER_ID'))}")
+print(f"Toutes les variables WHATSAPP: {[k for k in os.environ.keys() if 'WHATSAPP' in k or 'PHONE' in k]}")
+print("="*60 + "\n")
+sys.stdout.flush()
 
 # Track processed message IDs to prevent duplicates
 processed_messages = set()
@@ -51,6 +66,27 @@ def log_request_info():
 PHONE_NUMBER_ID = os.getenv("PHONE_NUMBER_ID")
 WHATSAPP_TOKEN = os.getenv("WHATSAPP_TOKEN")
 VERIFY_TOKEN = WHATSAPP_TOKEN
+
+# Log pour vérifier le chargement
+if not WHATSAPP_TOKEN:
+    import sys
+    sys.stdout.flush()
+    print("\n" + "="*60)
+    print("❌ ERREUR CRITIQUE: WHATSAPP_TOKEN n'est pas défini!")
+    print("="*60)
+    print("Vérifiez que la variable WHATSAPP_TOKEN est définie dans Railway")
+    print("Variables d'environnement disponibles:")
+    for key in sorted(os.environ.keys()):
+        if 'TOKEN' in key or 'PHONE' in key or 'WHATSAPP' in key:
+            print(f"  - {key}: {'*' * min(20, len(os.getenv(key, '')))}")
+    print("="*60 + "\n")
+    sys.stdout.flush()
+else:
+    import sys
+    sys.stdout.flush()
+    print(f"✅ WHATSAPP_TOKEN chargé (longueur: {len(WHATSAPP_TOKEN)})")
+    print(f"✅ VERIFY_TOKEN configuré")
+    sys.stdout.flush()
 
 # Clients IA - Initialize with error handling
 try:

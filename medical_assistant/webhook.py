@@ -40,10 +40,27 @@ PHONE_NUMBER_ID = os.getenv("PHONE_NUMBER_ID")
 WHATSAPP_TOKEN = os.getenv("WHATSAPP_TOKEN")
 VERIFY_TOKEN = WHATSAPP_TOKEN
 
-# Clients IA
-openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-anthropic_client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-together_client = Together(api_key=os.getenv("TOGETHER_API_KEY"))
+# Clients IA - Initialize with error handling
+try:
+    openai_key = os.getenv("OPENAI_API_KEY")
+    openai_client = OpenAI(api_key=openai_key) if openai_key else None
+except Exception as e:
+    print(f"⚠️ Warning: Failed to initialize OpenAI client: {e}")
+    openai_client = None
+
+try:
+    anthropic_key = os.getenv("ANTHROPIC_API_KEY")
+    anthropic_client = Anthropic(api_key=anthropic_key) if anthropic_key else None
+except Exception as e:
+    print(f"⚠️ Warning: Failed to initialize Anthropic client: {e}")
+    anthropic_client = None
+
+try:
+    together_key = os.getenv("TOGETHER_API_KEY")
+    together_client = Together(api_key=together_key) if together_key else None
+except Exception as e:
+    print(f"⚠️ Warning: Failed to initialize Together client: {e}")
+    together_client = None
 
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 
@@ -93,6 +110,8 @@ def get_system_prompt(language):
 
 def call_gpt4(question, language="fr", image_data=None):
     """Appelle GPT-4o-mini avec support vision"""
+    if not openai_client:
+        return {"model": "GPT-4o-mini", "success": False, "error": "OpenAI client not initialized - check OPENAI_API_KEY"}
     try:
         print("  🤖 Appel GPT-4o-mini...")
         start = time.time()
@@ -160,6 +179,8 @@ def call_gpt4(question, language="fr", image_data=None):
 
 def call_claude(question, language="fr", image_data=None):
     """Appelle Claude avec support vision"""
+    if not anthropic_client:
+        return {"model": "Claude", "success": False, "error": "Anthropic client not initialized - check ANTHROPIC_API_KEY"}
     try:
         print("  🤖 Appel Claude...")
         start = time.time()
@@ -254,6 +275,8 @@ def call_deepseek(question, language="fr"):
 
 def call_qwen(question, language="fr"):
     """Appelle Qwen via Together AI"""
+    if not together_client:
+        return {"model": "Qwen", "success": False, "error": "Together client not initialized - check TOGETHER_API_KEY"}
     try:
         print("  🤖 Appel Qwen...")
         start = time.time()
@@ -290,6 +313,8 @@ def call_qwen(question, language="fr"):
 
 def call_llama(question, language="fr"):
     """Appelle Llama via Together AI"""
+    if not together_client:
+        return {"model": "Llama", "success": False, "error": "Together client not initialized - check TOGETHER_API_KEY"}
     try:
         print("  🤖 Appel Llama...")
         start = time.time()

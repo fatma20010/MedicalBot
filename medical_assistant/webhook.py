@@ -29,7 +29,19 @@ processed_messages = set()
 def log_request_info():
     """Log toutes les requêtes entrantes"""
     if request.path != '/favicon.ico':  # Ignorer les requêtes favicon
-        print(f"\n🌐 Requête reçue: {request.method} {request.path} depuis {request.remote_addr}")
+        import sys
+        sys.stdout.flush()  # Force flush pour Railway
+        print(f"\n{'='*60}")
+        print(f"🌐 REQUÊTE REÇUE")
+        print(f"{'='*60}")
+        print(f"Method: {request.method}")
+        print(f"Path: {request.path}")
+        print(f"Remote Address: {request.remote_addr}")
+        print(f"User-Agent: {request.headers.get('User-Agent', 'Unknown')}")
+        print(f"Query Params: {dict(request.args)}")
+        print(f"URL: {request.url}")
+        print(f"{'='*60}")
+        sys.stdout.flush()  # Force flush pour Railway
 
 # ============================================
 # CONFIGURATION
@@ -616,27 +628,182 @@ def verify_webhook():
     token = request.args.get('hub.verify_token')
     challenge = request.args.get('hub.challenge')
     
+    # Strip whitespace from token if present
+    if token:
+        token = token.strip()
+    if VERIFY_TOKEN:
+        expected_token = VERIFY_TOKEN.strip()
+    else:
+        expected_token = None
+        print("⚠️ ATTENTION: VERIFY_TOKEN n'est pas configuré!")
+        print("⚠️ Vérifiez que WHATSAPP_TOKEN est défini dans les variables d'environnement")
+    
+    import sys
+    sys.stdout.flush()  # Force flush pour Railway
     print("\n" + "="*60)
     print("🔍 VÉRIFICATION WEBHOOK")
     print("="*60)
     print(f"Mode: {mode}")
     print(f"Token reçu: {token[:10] + '...' if token and len(token) > 10 else token}")
-    print(f"Token attendu: {VERIFY_TOKEN[:10] + '...' if VERIFY_TOKEN and len(VERIFY_TOKEN) > 10 else VERIFY_TOKEN}")
+    print(f"Token attendu: {expected_token[:10] + '...' if expected_token and len(expected_token) > 10 else expected_token}")
+    print(f"Token match: {token == expected_token}")
     print(f"Challenge: {challenge}")
+    print(f"Request URL: {request.url}")
+    print(f"Request scheme: {request.scheme}")
+    print(f"All query params: {dict(request.args)}")
     print("="*60)
+    sys.stdout.flush()  # Force flush pour Railway
     
-    if mode == 'subscribe' and token == VERIFY_TOKEN:
+    # If accessed directly from browser (no parameters), show helpful message
+    if not mode and not token and not challenge:
+        return """
+        <html>
+        <head>
+            <title>WhatsApp Webhook Endpoint</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    max-width: 800px;
+                    margin: 50px auto;
+                    padding: 20px;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                }
+                .card {
+                    background: white;
+                    padding: 30px;
+                    border-radius: 15px;
+                    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+                }
+                h1 { color: #667eea; }
+                .info {
+                    background: #f3f4f6;
+                    padding: 15px;
+                    border-radius: 8px;
+                    margin: 15px 0;
+                    border-left: 4px solid #667eea;
+                }
+                .success { color: #10b981; font-weight: bold; }
+                .warning { color: #f59e0b; font-weight: bold; }
+            </style>
+        </head>
+        <body>
+            <div class="card">
+                <h1>🔗 WhatsApp Webhook Endpoint</h1>
+                <div class="info">
+                    <p class="success">✅ This endpoint is working correctly!</p>
+                    <p><strong>This is normal behavior.</strong> This endpoint is designed to be called by Meta's servers, not directly from a browser.</p>
+                </div>
+                <div class="info">
+                    <h3>📋 How to verify in Meta:</h3>
+                    <ol>
+                        <li>Go to <strong>Meta for Developers</strong> → Your App → WhatsApp → Configuration</li>
+                        <li>In the Webhook section, enter:
+                            <ul>
+                                <li><strong>Callback URL:</strong> <code>https://medicalbot-production-f690.up.railway.app/webhook</code></li>
+                                <li><strong>Verify Token:</strong> Your WHATSAPP_TOKEN</li>
+                            </ul>
+                        </li>
+                        <li>Click <strong>"Verify and Save"</strong></li>
+                        <li>Meta will call this endpoint with the proper parameters</li>
+                    </ol>
+                </div>
+                <div class="info">
+                    <p class="warning">⚠️ When Meta calls this endpoint, it will include:</p>
+                    <ul>
+                        <li><code>hub.mode=subscribe</code></li>
+                        <li><code>hub.verify_token=YOUR_TOKEN</code></li>
+                        <li><code>hub.challenge=RANDOM_STRING</code></li>
+                    </ul>
+                    <p>Only then will verification succeed.</p>
+                </div>
+                <p><a href="/test">Test Server Status</a> | <a href="/webhook-test">Test Webhook Parameters</a></p>
+            </div>
+        </body>
+        </html>
+        """, 200
+    
+    # Verify the webhook - Meta requires exact match
+    if mode == 'subscribe' and token == expected_token and challenge:
+        import sys
+        sys.stdout.flush()  # Force flush pour Railway
         print("✅ VÉRIFICATION RÉUSSIE")
+        print(f"✅ Challenge à retourner: {challenge}")
         print("="*60 + "\n")
-        return str(challenge), 200
+        sys.stdout.flush()  # Force flush pour Railway
+        # Meta requires EXACTLY the challenge string as plain text
+        # Must be 200 status, text/plain content type, and ONLY the challenge string
+        from flask import Response
+        return Response(
+            response=str(challenge),
+            status=200,
+            mimetype='text/plain',
+            headers={'Content-Type': 'text/plain'}
+        )
     else:
+        import sys
+        sys.stdout.flush()  # Force flush pour Railway
         print("❌ VÉRIFICATION ÉCHOUÉE")
         if mode != 'subscribe':
             print(f"   Raison: Mode incorrect (attendu: 'subscribe', reçu: '{mode}')")
-        if token != VERIFY_TOKEN:
+        if token != expected_token:
             print(f"   Raison: Token incorrect")
+            print(f"   Token reçu (first 20 chars): {token[:20] if token else 'None'}")
+            print(f"   Token attendu (first 20 chars): {expected_token[:20] if expected_token else 'None'}")
+            print(f"   Token reçu (full length): {len(token) if token else 0}")
+            print(f"   Token attendu (full length): {len(expected_token) if expected_token else 0}")
+        if not challenge:
+            print(f"   Raison: Challenge manquant")
         print("="*60 + "\n")
-        return 'Verification failed', 403
+        sys.stdout.flush()  # Force flush pour Railway
+        # Return 403 with text/plain for Meta's verification attempts
+        # But if it's a browser request with wrong params, show helpful message
+        user_agent = request.headers.get('User-Agent', '')
+        if 'Mozilla' in user_agent or 'Chrome' in user_agent or 'Safari' in user_agent:
+            # Browser request with wrong parameters
+            return """
+            <html>
+            <head>
+                <title>Webhook Verification Failed</title>
+                <style>
+                    body {
+                        font-family: Arial, sans-serif;
+                        max-width: 800px;
+                        margin: 50px auto;
+                        padding: 20px;
+                        background: #fee2e2;
+                    }
+                    .card {
+                        background: white;
+                        padding: 30px;
+                        border-radius: 15px;
+                        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+                    }
+                    .error { color: #dc2626; font-weight: bold; }
+                </style>
+            </head>
+            <body>
+                <div class="card">
+                    <h1 class="error">❌ Verification Failed</h1>
+                    <p>This endpoint requires specific parameters from Meta's servers.</p>
+                    <p><strong>To verify in Meta:</strong></p>
+                    <ol>
+                        <li>Use the URL: <code>https://medicalbot-production-f690.up.railway.app/webhook</code></li>
+                        <li>Use your WHATSAPP_TOKEN as the verify token</li>
+                        <li>Click "Verify and Save" in Meta's dashboard</li>
+                    </ol>
+                    <p><a href="/">← Back to Home</a></p>
+                </div>
+            </body>
+            </html>
+            """, 403
+        else:
+            # Meta's verification attempt with wrong parameters
+            response = app.response_class(
+                response='Verification failed',
+                status=403,
+                mimetype='text/plain'
+            )
+            return response
 
 
 @app.route('/webhook', methods=['POST'])
@@ -1122,9 +1289,23 @@ def send_whatsapp_image_with_caption(to_number, image_url, caption_text):
         send_whatsapp_message(to_number, f"🤖 {caption_text}")
 
 
+@app.route('/ping', methods=['GET'])
+def ping():
+    """Endpoint simple pour vérifier que le serveur répond"""
+    import sys
+    sys.stdout.flush()
+    print("🏓 PING reçu - Serveur actif!")
+    sys.stdout.flush()
+    return "pong", 200
+
+
 @app.route('/test', methods=['GET', 'POST'])
 def test():
     """Endpoint de test pour vérifier que le serveur fonctionne"""
+    import sys
+    sys.stdout.flush()
+    print("🧪 TEST endpoint appelé")
+    sys.stdout.flush()
     return jsonify({
         "status": "success",
         "message": "Webhook server is running",
@@ -1139,9 +1320,47 @@ def test():
             "has_deepseek": bool(DEEPSEEK_API_KEY)
         },
         "instructions": {
-            "webhook_url": "http://VOTRE_IP_PUBLIQUE:5000/webhook",
+            "webhook_url": "https://VOTRE_DOMAINE/webhook",
             "verify_token": "Utilisez votre WHATSAPP_TOKEN",
-            "note": "Assurez-vous que votre serveur est accessible depuis Internet (utilisez ngrok si en local)"
+            "note": "⚠️ IMPORTANT: Meta exige HTTPS. Assurez-vous que votre URL commence par https://"
+        },
+        "request_info": {
+            "scheme": request.scheme,
+            "url": request.url,
+            "host": request.host,
+            "is_https": request.scheme == "https"
+        }
+    }), 200
+
+
+@app.route('/webhook-test', methods=['GET'])
+def test_webhook_verification():
+    """Endpoint de test pour simuler la vérification Meta"""
+    # Simulate Meta's verification request
+    test_mode = request.args.get('hub.mode', 'subscribe')
+    test_token = request.args.get('hub.verify_token', VERIFY_TOKEN)
+    test_challenge = request.args.get('hub.challenge', 'TEST_CHALLENGE_12345')
+    
+    return jsonify({
+        "status": "test",
+        "message": "This is a test endpoint. Use /webhook for actual Meta verification.",
+        "test_params": {
+            "mode": test_mode,
+            "token_provided": bool(test_token),
+            "token_matches": test_token == VERIFY_TOKEN,
+            "challenge": test_challenge,
+            "expected_response": str(test_challenge) if test_mode == 'subscribe' and test_token == VERIFY_TOKEN else "Verification failed"
+        },
+        "request_info": {
+            "scheme": request.scheme,
+            "url": request.url,
+            "is_https": request.scheme == "https",
+            "headers": dict(request.headers)
+        },
+        "important": {
+            "https_required": "Meta requires HTTPS URLs. Your URL must start with https://",
+            "content_type": "Meta expects text/plain response, not JSON",
+            "verify_token": "Use your WHATSAPP_TOKEN as the verify token in Meta's webhook settings"
         }
     }), 200
 
